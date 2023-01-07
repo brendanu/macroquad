@@ -385,12 +385,16 @@ pub fn load_map(
                             let horizontally = *tile & FLIPPED_HORIZONTALLY_FLAG != 0;
                             let vertically = *tile & FLIPPED_VERTICALLY_FLAG != 0;
 
+                            // dbg!(antidiagonally);
+                            // dbg!(horizontally);
+                            // dbg!(vertically);
+
                             let cleared_tile = tile
                                 & !(FLIPPED_ANTIDIAGONALLY_FLAG
                                     | FLIPPED_HORIZONTALLY_FLAG
                                     | FLIPPED_VERTICALLY_FLAG);
 
-                            let flag_res = if *tile < FLIPPED_HORIZONTALLY_FLAG {
+                            let flag_res = if *tile > FLIPPED_HORIZONTALLY_FLAG {
                                 Some(TileFlippingFlags {
                                     antidiagonally,
                                     horizontally,
