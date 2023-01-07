@@ -31,6 +31,13 @@ pub struct Object {
 }
 
 #[derive(Debug)]
+pub struct TileFlippingFlags {
+    pub antidiagonally: bool,
+    pub horizontally: bool,
+    pub vertically: bool,
+}
+
+#[derive(Debug)]
 pub struct Tile {
     /// id in the tileset
     pub id: u32,
@@ -38,6 +45,7 @@ pub struct Tile {
     pub tileset: String,
     /// "type" from tiled
     pub attrs: String,
+    pub flags: Option<TileFlippingFlags>,
 }
 
 #[derive(Debug)]
@@ -81,7 +89,7 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn spr(&self, tileset: &str, sprite: u32, dest: Rect) {
+    pub fn spr(&self, tileset: &str, sprite: u32, dest: Rect, flags: &Option<TileFlippingFlags>) {
         if self.tilesets.contains_key(tileset) == false {
             panic!(
                 "No such tileset: {}, tilesets available: {:?}",
@@ -91,6 +99,16 @@ impl Map {
         }
         let tileset = &self.tilesets[tileset];
         let spr_rect = tileset.sprite_rect(sprite);
+
+        let mut flip_x = false;
+        let mut flip_y = false;
+        let mut rotation = 0.0;
+
+        if flags.is_some() {
+            flip_x = flags.as_ref().unwrap().horizontally;
+            flip_y = flags.as_ref().unwrap().vertically;
+            rotation = 90.0;
+        }
 
         draw_texture_ex(
             tileset.texture,
@@ -105,6 +123,9 @@ impl Map {
                     spr_rect.w + 2.0,
                     spr_rect.h + 2.0,
                 )),
+                flip_x,
+                flip_y,
+                rotation,
                 ..Default::default()
             },
         );
@@ -171,7 +192,7 @@ impl Map {
 
         for (tileset, tileset_layer) in &separated_by_ts {
             for (tile, rect) in tileset_layer {
-                self.spr(tileset, tile.id, *rect);
+                self.spr(tileset, tile.id, *rect, &tile.flags);
             }
         }
     }
@@ -338,6 +359,10 @@ pub fn load_map(
             })
         };
 
+        const FLIPPED_HORIZONTALLY_FLAG: u32 = 0x80000000;
+        const FLIPPED_VERTICALLY_FLAG: u32 = 0x40000000;
+        const FLIPPED_ANTIDIAGONALLY_FLAG: u32 = 0x20000000;
+
         layers.insert(
             layer.name.clone(),
             Layer {
@@ -356,10 +381,34 @@ pub fn load_map(
                                 .and_then(|tile| tile.ty.clone())
                                 .unwrap_or("".to_owned());
 
+                            let antidiagonally = *tile & FLIPPED_ANTIDIAGONALLY_FLAG != 0;
+                            let horizontally = *tile & FLIPPED_HORIZONTALLY_FLAG != 0;
+                            let vertically = *tile & FLIPPED_VERTICALLY_FLAG != 0;
+
+                            // dbg!(antidiagonally);
+                            // dbg!(horizontally);
+                            // dbg!(vertically);
+
+                            let cleared_tile = tile
+                                & !(FLIPPED_ANTIDIAGONALLY_FLAG
+                                    | FLIPPED_HORIZONTALLY_FLAG
+                                    | FLIPPED_VERTICALLY_FLAG);
+
+                            let flag_res = if *tile > FLIPPED_HORIZONTALLY_FLAG {
+                                Some(TileFlippingFlags {
+                                    antidiagonally,
+                                    horizontally,
+                                    vertically,
+                                })
+                            } else {
+                                None
+                            };
+
                             Tile {
-                                id: *tile - tileset.firstgid,
+                                id: cleared_tile - tileset.firstgid,
                                 tileset: tileset.name.clone(),
                                 attrs,
+                                flags: flag_res,
                             }
                         })
                     })
