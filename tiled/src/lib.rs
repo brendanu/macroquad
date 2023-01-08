@@ -373,31 +373,27 @@ pub fn load_map(
                     .data
                     .iter()
                     .map(|tile| {
-                        find_tileset(*tile).map(|tileset| {
+                        let antidiagonally = *tile & FLIPPED_ANTIDIAGONALLY_FLAG != 0;
+                        let horizontally = *tile & FLIPPED_HORIZONTALLY_FLAG != 0;
+                        let vertically = *tile & FLIPPED_VERTICALLY_FLAG != 0;
+
+                        let cleared_tile = *tile
+                            & !(FLIPPED_ANTIDIAGONALLY_FLAG
+                                | FLIPPED_HORIZONTALLY_FLAG
+                                | FLIPPED_VERTICALLY_FLAG);
+
+                        let mut rotation = 0.0;
+                        if antidiagonally {
+                            rotation = 90.0_f32.to_radians();
+                        }
+
+                        find_tileset(cleared_tile).map(|tileset| {
                             let attrs = tileset
                                 .tiles
                                 .iter()
-                                .find(|t| t.id as u32 == *tile - tileset.firstgid)
+                                .find(|t| t.id as u32 == cleared_tile - tileset.firstgid)
                                 .and_then(|tile| tile.ty.clone())
                                 .unwrap_or("".to_owned());
-
-                            let antidiagonally = *tile & FLIPPED_ANTIDIAGONALLY_FLAG != 0;
-                            let horizontally = *tile & FLIPPED_HORIZONTALLY_FLAG != 0;
-                            let vertically = *tile & FLIPPED_VERTICALLY_FLAG != 0;
-
-                            // dbg!(antidiagonally);
-                            // dbg!(horizontally);
-                            // dbg!(vertically);
-
-                            let cleared_tile = tile
-                                & !(FLIPPED_ANTIDIAGONALLY_FLAG
-                                    | FLIPPED_HORIZONTALLY_FLAG
-                                    | FLIPPED_VERTICALLY_FLAG);
-
-                            let mut rotation = 0.0;
-                            if antidiagonally {
-                                rotation = 90.0_f32.to_radians();
-                            }
 
                             Tile {
                                 id: cleared_tile - tileset.firstgid,
