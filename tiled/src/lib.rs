@@ -382,10 +382,15 @@ pub fn load_map(
                                 | FLIPPED_HORIZONTALLY_FLAG
                                 | FLIPPED_VERTICALLY_FLAG);
 
-                        let mut rotation = 0.0;
-                        if antidiagonally {
-                            rotation = 90.0_f32.to_radians();
-                        }
+                        let rotation = if antidiagonally {
+                            if !horizontally {
+                                -std::f32::consts::PI / 2.0
+                            } else {
+                                std::f32::consts::PI / 2.0
+                            }
+                        } else {
+                            0.
+                        };
 
                         find_tileset(cleared_tile).map(|tileset| {
                             let attrs = tileset
