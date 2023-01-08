@@ -31,13 +31,6 @@ pub struct Object {
 }
 
 #[derive(Debug)]
-pub struct TileFlippingFlags {
-    pub antidiagonally: bool,
-    pub horizontally: bool,
-    pub vertically: bool,
-}
-
-#[derive(Debug)]
 pub struct Tile {
     /// id in the tileset
     pub id: u32,
@@ -45,7 +38,9 @@ pub struct Tile {
     pub tileset: String,
     /// "type" from tiled
     pub attrs: String,
-    pub flags: Option<TileFlippingFlags>,
+    pub flip_x: bool,
+    pub flip_y: bool,
+    pub rotation: f32,
 }
 
 #[derive(Debug)]
@@ -89,7 +84,15 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn spr(&self, tileset: &str, sprite: u32, dest: Rect, flags: &Option<TileFlippingFlags>) {
+    pub fn spr(
+        &self,
+        tileset: &str,
+        sprite: u32,
+        dest: Rect,
+        flip_x: bool,
+        flip_y: bool,
+        rotation: f32,
+    ) {
         if self.tilesets.contains_key(tileset) == false {
             panic!(
                 "No such tileset: {}, tilesets available: {:?}",
@@ -99,16 +102,6 @@ impl Map {
         }
         let tileset = &self.tilesets[tileset];
         let spr_rect = tileset.sprite_rect(sprite);
-
-        let mut flip_x = false;
-        let mut flip_y = false;
-        let mut rotation = 0.0;
-
-        if flags.is_some() {
-            flip_x = flags.as_ref().unwrap().horizontally;
-            flip_y = flags.as_ref().unwrap().vertically;
-            rotation = 90.0;
-        }
 
         draw_texture_ex(
             tileset.texture,
@@ -192,7 +185,14 @@ impl Map {
 
         for (tileset, tileset_layer) in &separated_by_ts {
             for (tile, rect) in tileset_layer {
-                self.spr(tileset, tile.id, *rect, &tile.flags);
+                self.spr(
+                    tileset,
+                    tile.id,
+                    *rect,
+                    tile.flip_x,
+                    tile.flip_y,
+                    tile.rotation,
+                );
             }
         }
     }
@@ -394,24 +394,18 @@ pub fn load_map(
                                     | FLIPPED_HORIZONTALLY_FLAG
                                     | FLIPPED_VERTICALLY_FLAG);
 
-                            let flag_res = if *tile > FLIPPED_HORIZONTALLY_FLAG {
-                                dbg!(antidiagonally);
-                                dbg!(horizontally);
-                                dbg!(vertically);
-                                Some(TileFlippingFlags {
-                                    antidiagonally,
-                                    horizontally,
-                                    vertically,
-                                })
-                            } else {
-                                None
-                            };
+                            let mut rotation = 0.0;
+                            if antidiagonally {
+                                rotation = 90.0_f32.to_radians();
+                            }
 
                             Tile {
                                 id: cleared_tile - tileset.firstgid,
                                 tileset: tileset.name.clone(),
                                 attrs,
-                                flags: flag_res,
+                                flip_x: horizontally,
+                                flip_y: vertically,
+                                rotation,
                             }
                         })
                     })

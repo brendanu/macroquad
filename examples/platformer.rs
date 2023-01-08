@@ -74,14 +74,18 @@ async fn main() {
                     "tileset",
                     PLAYER_SPRITE,
                     Rect::new(pos.x, pos.y, 8.0, 8.0),
-                    &None,
+                    false,
+                    false,
+                    0.0,
                 );
             } else {
                 tiled_map.spr(
                     "tileset",
                     PLAYER_SPRITE,
                     Rect::new(pos.x + 8.0, pos.y, -8.0, 8.0),
-                    &None,
+                    false,
+                    false,
+                    0.0,
                 );
             }
         }
